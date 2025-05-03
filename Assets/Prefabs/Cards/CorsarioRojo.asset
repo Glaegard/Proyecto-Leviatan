@@ -15,10 +15,10 @@ MonoBehaviour:
   cardName: CorsarioRojo
   cardType: 0
   energyCost: 2
-  abilityText: 
-  loreText: 
-  attack: 7
-  defense: 7
+  abilityText: El corsario rojo es un PUTO lamebotas de pedro sanchez
+  loreText: "Cuando el corsario rojo caga, caga marr\xF3n"
+  attack: 2
+  defense: 2
   previewSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
   fullSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
   shipPrefab: {fileID: 6510914853174331649, guid: 93c9df02b0ec51e458bd6e728297965a, type: 3}

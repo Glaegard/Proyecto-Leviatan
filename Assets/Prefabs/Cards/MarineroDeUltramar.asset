@@ -15,10 +15,11 @@ MonoBehaviour:
   cardName: Marinero de ultramar
   cardType: 0
   energyCost: 2
-  abilityText: 
-  loreText: 
+  abilityText: El marinero de ultramar es votante de vox, siempre esta buscando el
+    amancer por si aparece con la cara de franco como el sol de los telettubbies
+  loreText: Al marinero de ultramar no se le levanta, por eso vota a vox
   attack: 2
-  defense: 0
+  defense: 2
   previewSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
   fullSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
   shipPrefab: {fileID: 6510914853174331649, guid: 93c9df02b0ec51e458bd6e728297965a, type: 3}

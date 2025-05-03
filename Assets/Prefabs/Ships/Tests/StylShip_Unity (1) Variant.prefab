@@ -716,7 +716,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attack: 0
-  maxHealth: 4
+  maxHealth: 0
   currentHealth: 0
   crewCount: 0
   isPlayer: 0
