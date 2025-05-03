@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb4e8600c3569b4d9426dfaf37056da, type: 3}
+  m_Name: CorsarioRojo
+  m_EditorClassIdentifier: 
+  cardName: CorsarioRojo
+  cardType: 0
+  energyCost: 2
+  abilityText: 
+  loreText: 
+  attack: 7
+  defense: 7
+  previewSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
+  fullSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
+  shipPrefab: {fileID: 6510914853174331649, guid: 93c9df02b0ec51e458bd6e728297965a, type: 3}
