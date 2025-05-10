@@ -173,4 +173,28 @@ public class Ship : MonoBehaviour
             highlightIndicator.SetActive(active);
     }
 
+    public void InitializePreview(bool playerTeam, int attack, int health, int lane)
+    {
+        isPlayer = playerTeam;
+        this.attack = attack;
+        this.maxHealth = this.currentHealth = health;
+        crewCount = 1;
+        laneIndex = lane;
+
+        UpdateUI();
+        rb = GetComponent<Rigidbody>();
+        coll = GetComponent<Collider>();
+        if (rb != null) rb.isKinematic = true;
+        if (coll != null) coll.enabled = false;
+    }
+
+    public void SetStats(int attack, int health, int crew)
+    {
+        this.attack = attack;
+        this.maxHealth = health;
+        this.currentHealth = health;
+        this.crewCount = crew;
+        UpdateUI();
+    }
+
 }

@@ -1,63 +1,56 @@
 ﻿using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using TMPro;
+using UnityEngine.EventSystems;
 using System.Collections;
+using TMPro;
 
 [RequireComponent(typeof(CanvasGroup))]
-public class CardUI : MonoBehaviour,
+public class MinimalCardUI : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler,
     IPointerDownHandler, IPointerUpHandler
 {
-    [Header("Referencias Minimalistas")]
-    [SerializeField] private TextMeshProUGUI energyCostText;
-    [SerializeField] private TextMeshProUGUI attackText;
-    [SerializeField] private TextMeshProUGUI defenseText;
-    [SerializeField] private Image cardImage;
+    [Header("UI Minimalista")]
+    public TextMeshProUGUI energyCostText;
+    public TextMeshProUGUI attackText;
+    public TextMeshProUGUI defenseText;
+    public Image cardImage;
 
-    [Header("Datos de la Carta")]
-    public CardData cardData;
-    public int handSlotIndex;
+    [HideInInspector] public CardData cardData;
+    [HideInInspector] public int slotIndex;
 
-    private CanvasGroup canvasGroup;
     private Vector3 originalPosition;
-    private Camera mainCamera;
+    private CanvasGroup canvasGroup;
     private Coroutine holdCoroutine;
     private bool pointerDown;
 
     private void Awake()
     {
         canvasGroup = GetComponent<CanvasGroup>();
-        mainCamera = Camera.main;
     }
 
     /// <summary>
-    /// Inicializa la carta en la mano (minimalista): coste, ataque y defensa.
+    /// Asigna datos y slot, actualiza textos e imagen.
     /// </summary>
     public void Initialize(CardData data, int slot)
     {
         cardData = data;
-        handSlotIndex = slot;
+        slotIndex = slot;
 
-        if (energyCostText != null)
-            energyCostText.text = data.energyCost.ToString();
-        if (attackText != null)
-            attackText.text = data.attack.ToString();
-        if (defenseText != null)
-            defenseText.text = data.defense.ToString();
+        energyCostText.text = data.energyCost.ToString();
+        attackText.text = data.attack.ToString();
+        defenseText.text = data.defense.ToString();
         if (cardImage != null && data.previewSprite != null)
             cardImage.sprite = data.previewSprite;
 
         originalPosition = transform.position;
     }
 
-    // ───────────────── Hold para detalle ─────────────────
+    // ─ Hold para detalle ──────────────────
     public void OnPointerDown(PointerEventData _)
     {
         pointerDown = true;
         holdCoroutine = StartCoroutine(ShowDetailAfterDelay());
     }
-
     public void OnPointerUp(PointerEventData _)
     {
         pointerDown = false;
@@ -71,11 +64,12 @@ public class CardUI : MonoBehaviour,
             GameManager.Instance.uiManager.ShowCardDetail(cardData);
     }
 
-    // ───────────────── Drag & Drop ───────────────────────
+    // ─ Drag & Drop ───────────────────────
     public void OnBeginDrag(PointerEventData _)
     {
         pointerDown = false;
-        if (holdCoroutine != null) StopCoroutine(holdCoroutine);
+        if (GameManager.Instance?.uiManager?.cardDetailPanel.activeSelf == true)
+            GameManager.Instance.uiManager.HideCardDetail();
 
         originalPosition = transform.position;
         canvasGroup.blocksRaycasts = false;
@@ -90,7 +84,7 @@ public class CardUI : MonoBehaviour,
     {
         canvasGroup.blocksRaycasts = true;
 
-        // Si suelta en DropZone
+        // Si suelta en zona de spawn:
         if (eventData.pointerEnter != null &&
             eventData.pointerEnter.CompareTag("DropZone") &&
             eventData.pointerEnter.TryGetComponent(out SpawnZone spawn))
@@ -98,19 +92,14 @@ public class CardUI : MonoBehaviour,
             bool played = GameManager.Instance.PlayCard(cardData, spawn.laneIndex, true);
             if (played)
             {
-                StartCoroutine(ReplaceCardNextFrame());
+                // Rojo automática y destrucción
+                GameManager.Instance.cardManager.RemoveCardFromHand(slotIndex);
                 Destroy(gameObject);
                 return;
             }
         }
 
-        // Si no jugó, vuelve a su posición
+        // Sino, vuelve a posición
         transform.position = originalPosition;
-    }
-
-    private IEnumerator ReplaceCardNextFrame()
-    {
-        yield return null;
-        GameManager.Instance.cardManager.RemoveCardFromHand(handSlotIndex);
     }
 }
