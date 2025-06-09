@@ -430,6 +430,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Plane (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 2182015795923724548, guid: df803372b2d5f8b47a086cafa43a0439, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: fb1a5f107f81cd8429b0cd85369da0a4, type: 2}
     - target: {fileID: 3802932906378079749, guid: df803372b2d5f8b47a086cafa43a0439, type: 3}
       propertyPath: m_LocalScale.x
       value: 5.8066964
