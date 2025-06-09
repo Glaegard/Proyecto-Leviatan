@@ -1,6 +1,4 @@
-﻿// ====================================================================
-// Ship.cs – lógica de barcos: movimiento, combate y hundimiento
-// ====================================================================
+﻿// File: Ship.cs
 
 using System.Collections;
 using UnityEngine;
@@ -9,43 +7,57 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Collider), typeof(Rigidbody))]
 public class Ship : MonoBehaviour
 {
-    //——————— Atributos ———————//
+    [Header("Estadísticas")]
     public int attack;
     public int maxHealth;
     public int currentHealth;
     public int crewCount;
 
+    [Header("Propietario y carril")]
     public bool isPlayer;
     public int laneIndex;
 
+    [Header("Movimiento")]
+    public float moveInterval = 3f;
+    public float moveDistance = 5f;
     private Vector3 targetPosition;
     private float smoothSpeed;
 
-    // UI
+    [Header("UI Interna")]
     [SerializeField] private Slider healthBar;
     [SerializeField] private Text statsText;
     [SerializeField] private Text crewText;
-    [SerializeField] private GameObject highlightIndicator;
 
-    // Estado
+    public GameObject uiElementsPrefab;
+
     private bool isSinking = false;
     [HideInInspector] public bool isFighting = false;
 
     private Rigidbody rb;
     private Collider coll;
 
-    //——————— Inicialización ———————//
+    /// <summary>
+    /// Inicialización completa al spawnear un barco en el mundo 3D.
+    /// </summary>
     public void Initialize(
-        bool playerTeam, int baseAttack, int baseHealth,
-        Vector3 targetPos, float moveInterval, float moveDistance, int laneIndex)
+        bool playerTeam,
+        int baseAttack,
+        int baseHealth,
+        Vector3 targetPos,
+        float moveInterval,
+        float moveDistance,
+        int lane)
     {
+
         isPlayer = playerTeam;
         attack = baseAttack;
         maxHealth = currentHealth = baseHealth;
         crewCount = 1;
-        this.laneIndex = laneIndex;
+        laneIndex = lane;
 
         targetPosition = targetPos;
+        this.moveInterval = moveInterval;
+        this.moveDistance = moveDistance;
         smoothSpeed = moveDistance / moveInterval;
 
         rb = GetComponent<Rigidbody>();
@@ -59,7 +71,47 @@ public class Ship : MonoBehaviour
         StartCoroutine(MoveRoutine());
     }
 
-    //——————— Rutinas ———————//
+    /// <summary>
+    /// Genera una vista previa inmóvil del barco en UI.
+    /// </summary>
+    public void InitializePreview(bool playerTeam, int attack, int health, int lane)
+    {
+        isPlayer = playerTeam;
+        this.attack = attack;
+        maxHealth = currentHealth = health;
+        crewCount = 1;
+        laneIndex = lane;
+
+        if (!isPlayer)
+        {
+            uiElementsPrefab.transform.rotation = Quaternion.Euler(0f, -180f, 0f);
+        }
+        // No participará en física ni movimiento
+        rb = GetComponent<Rigidbody>();
+        coll = GetComponent<Collider>();
+        if (rb != null) rb.isKinematic = true;
+        if (coll != null) coll.enabled = false;
+
+        UpdateUI();
+    }
+
+    /// <summary>
+    /// Actualiza estadísticas de la vista previa al agregar cartas.
+    /// </summary>
+    public void SetStats(int attack, int health, int crew)
+    {
+        this.attack = attack;
+        maxHealth = health;
+        currentHealth = health;
+        crewCount = crew;
+
+        if (!isPlayer)
+        {
+            uiElementsPrefab.transform.rotation = Quaternion.Euler(0f, -180f, 0f);
+        }
+        UpdateUI();
+    }
+
     private IEnumerator MoveRoutine()
     {
         while (!isFighting && !isSinking)
@@ -68,17 +120,11 @@ public class Ship : MonoBehaviour
             transform.position += isPlayer ? Vector3.forward * step
                                            : Vector3.back * step;
 
-            // Llegada al final del carril → abordaje
+            // Al llegar al final → abordaje
             if ((isPlayer && transform.position.z >= targetPosition.z) ||
                 (!isPlayer && transform.position.z <= targetPosition.z))
             {
-                if (GameManager.Instance != null)
-                {
-                    if (isPlayer) GameManager.Instance.playerController.boardingCount++;
-                    else GameManager.Instance.aiController.boardingCount++;
-
-                    GameManager.Instance.TriggerBoarding();
-                }
+                GameManager.Instance.TriggerBoarding(isPlayer);
                 Destroy(gameObject);
                 yield break;
             }
@@ -90,12 +136,11 @@ public class Ship : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("AtackCollider")) return;
-
         Ship otherShip = other.GetComponentInParent<Ship>();
         if (otherShip == null || otherShip.isPlayer == isPlayer) return;
         if (isFighting || otherShip.isFighting) return;
 
-        // asegura que solo uno inicia la corrutina de combate
+        // Solo uno inicia el combate
         if (GetInstanceID() < otherShip.GetInstanceID())
         {
             isFighting = true;
@@ -110,21 +155,17 @@ public class Ship : MonoBehaviour
         {
             currentHealth -= enemy.attack;
             enemy.currentHealth -= attack;
-
             UpdateUI();
             enemy.UpdateUI();
-
             yield return new WaitForSeconds(1f);
         }
 
-        // determinar supervivientes
         bool iSurvives = currentHealth > 0;
         bool enemySurvives = enemy.currentHealth > 0;
 
         if (!iSurvives) Sink();
         if (!enemySurvives) enemy.Sink();
 
-        // reiniciar movimiento de los que siguen vivos
         if (iSurvives)
         {
             isFighting = false;
@@ -149,7 +190,6 @@ public class Ship : MonoBehaviour
     {
         float elapsed = 0f, duration = 1f;
         Vector3 start = transform.position;
-
         while (elapsed < duration)
         {
             transform.position = start + Vector3.down * (elapsed / duration * 2f);
@@ -158,43 +198,27 @@ public class Ship : MonoBehaviour
         }
         Destroy(gameObject);
     }
-    //——————— Utilidades ———————//
+
+    /// <summary>
+    /// Actualiza los elementos UI del barco (barra, textos).
+    /// </summary>
     public void UpdateUI()
     {
-        if (healthBar != null) healthBar.value = Mathf.Max(currentHealth, 0);
-        if (statsText != null) statsText.text = $"{attack}/{Mathf.Max(currentHealth, 0)}";
-        if (crewText != null) crewText.text = crewCount.ToString();
+        if (healthBar != null)
+            healthBar.value = Mathf.Max(0, currentHealth);
+
+        if (statsText != null)
+            statsText.text = $"{attack}/{Mathf.Max(0, currentHealth)}";
+
+        if (crewText != null)
+            crewText.text = crewCount.ToString();
     }
 
+    /// <summary>
+    /// Activa/desactiva un indicador visual de resaltado.
+    /// </summary>
     public void SetHighlight(bool active)
     {
-        // Activa o desactiva el indicador visual de resaltado del barco
-        if (highlightIndicator != null)
-            highlightIndicator.SetActive(active);
+        // Implementar según tu indicador
     }
-
-    public void InitializePreview(bool playerTeam, int attack, int health, int lane)
-    {
-        isPlayer = playerTeam;
-        this.attack = attack;
-        this.maxHealth = this.currentHealth = health;
-        crewCount = 1;
-        laneIndex = lane;
-
-        UpdateUI();
-        rb = GetComponent<Rigidbody>();
-        coll = GetComponent<Collider>();
-        if (rb != null) rb.isKinematic = true;
-        if (coll != null) coll.enabled = false;
-    }
-
-    public void SetStats(int attack, int health, int crew)
-    {
-        this.attack = attack;
-        this.maxHealth = health;
-        this.currentHealth = health;
-        this.crewCount = crew;
-        UpdateUI();
-    }
-
 }

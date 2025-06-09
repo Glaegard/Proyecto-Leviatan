@@ -9,74 +9,56 @@ public class CardUI : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler,
     IPointerDownHandler, IPointerUpHandler
 {
-    [Header("Referencias Minimalistas")]
-    [SerializeField] private TextMeshProUGUI energyCostText;
-    [SerializeField] private TextMeshProUGUI attackText;
-    [SerializeField] private TextMeshProUGUI defenseText;
-    [SerializeField] private Image cardImage;
+    [Header("UI Minimalista")]
+    public TextMeshProUGUI energyCostText;
+    public TextMeshProUGUI attackText;
+    public TextMeshProUGUI defenseText;
+    public Image cardImage;
 
-    [Header("Datos de la Carta")]
-    public CardData cardData;
-    public int handSlotIndex;
+    [HideInInspector] public CardData cardData;
+    [HideInInspector] public int handSlotIndex;
 
     private CanvasGroup canvasGroup;
     private Vector3 originalPosition;
-    private Camera mainCamera;
     private Coroutine holdCoroutine;
     private bool pointerDown;
 
     private void Awake()
     {
         canvasGroup = GetComponent<CanvasGroup>();
-        mainCamera = Camera.main;
     }
 
-    /// <summary>
-    /// Inicializa la carta en la mano (minimalista): coste, ataque y defensa.
-    /// </summary>
     public void Initialize(CardData data, int slot)
     {
         cardData = data;
         handSlotIndex = slot;
-
-        if (energyCostText != null)
-            energyCostText.text = data.energyCost.ToString();
-        if (attackText != null)
-            attackText.text = data.attack.ToString();
-        if (defenseText != null)
-            defenseText.text = data.defense.ToString();
-        if (cardImage != null && data.previewSprite != null)
-            cardImage.sprite = data.previewSprite;
-
+        energyCostText.text = data.energyCost.ToString();
+        attackText.text = data.attack.ToString();
+        defenseText.text = data.defense.ToString();
+        cardImage.sprite = data.previewSprite;
         originalPosition = transform.position;
     }
 
-    // ───────────────── Hold para detalle ─────────────────
     public void OnPointerDown(PointerEventData _)
     {
         pointerDown = true;
         holdCoroutine = StartCoroutine(ShowDetailAfterDelay());
     }
-
     public void OnPointerUp(PointerEventData _)
     {
         pointerDown = false;
         if (holdCoroutine != null) StopCoroutine(holdCoroutine);
     }
-
     private IEnumerator ShowDetailAfterDelay()
     {
         yield return new WaitForSeconds(0.5f);
-        if (pointerDown && GameManager.Instance?.uiManager != null)
-            GameManager.Instance.uiManager.ShowCardDetail(cardData);
+        if (pointerDown) GameManager.Instance.uiManager.ShowCardDetail(cardData);
     }
 
-    // ───────────────── Drag & Drop ───────────────────────
     public void OnBeginDrag(PointerEventData _)
     {
         pointerDown = false;
         if (holdCoroutine != null) StopCoroutine(holdCoroutine);
-
         originalPosition = transform.position;
         canvasGroup.blocksRaycasts = false;
     }
@@ -90,21 +72,28 @@ public class CardUI : MonoBehaviour,
     {
         canvasGroup.blocksRaycasts = true;
 
-        // Si suelta en DropZone
-        if (eventData.pointerEnter != null &&
-            eventData.pointerEnter.CompareTag("DropZone") &&
-            eventData.pointerEnter.TryGetComponent(out SpawnZone spawn))
+        Vector2 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
+        var hit = Physics2D.Raycast(worldPos, Vector2.zero);
+        if (hit.collider != null && hit.collider.TryGetComponent<SpawnZone>(out var zone))
         {
-            bool played = GameManager.Instance.PlayCard(cardData, spawn.laneIndex, true);
+            bool played = GameManager.Instance.TryPlayCard(
+                cardData, zone.laneIndex, null, true
+            );
             if (played)
             {
+                LaneManager.Instance.SpawnShip(
+                    cardData.shipPrefab,
+                    true,
+                    zone.laneIndex,
+                    cardData.attack,
+                    cardData.defense
+                );
                 StartCoroutine(ReplaceCardNextFrame());
                 Destroy(gameObject);
                 return;
             }
         }
 
-        // Si no jugó, vuelve a su posición
         transform.position = originalPosition;
     }
 

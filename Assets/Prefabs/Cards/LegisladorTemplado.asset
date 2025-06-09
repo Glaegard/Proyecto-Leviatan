@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb4e8600c3569b4d9426dfaf37056da, type: 3}
+  m_Name: LegisladorTemplado
+  m_EditorClassIdentifier: 
+  cardName_ES: P_0A
+  cardName_EN: 
+  abilityText_ES: 
+  abilityText_EN: 
+  loreText_ES: 
+  loreText_EN: 
+  cardType: 0
+  energyCost: 5
+  attack: 1
+  defense: 8
+  previewSprite: {fileID: 419108101, guid: 8ea01559c07b0ce48b6565b3b91de1ef, type: 3}
+  fullSprite: {fileID: 419108101, guid: 8ea01559c07b0ce48b6565b3b91de1ef, type: 3}
+  shipPrefab: {fileID: 4358931750228958100, guid: fc6f34d85287a754485e4ec0b685073b, type: 3}
+  effect: {fileID: 0}

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb4e8600c3569b4d9426dfaf37056da, type: 3}
+  m_Name: KamikazeRojo
+  m_EditorClassIdentifier: 
+  cardName_ES: P_0A
+  cardName_EN: 
+  abilityText_ES: 
+  abilityText_EN: 
+  loreText_ES: 
+  loreText_EN: 
+  cardType: 0
+  energyCost: 1
+  attack: 2
+  defense: 0
+  previewSprite: {fileID: -1302963528, guid: 15385931be8cc6847b965811ee9e6906, type: 3}
+  fullSprite: {fileID: -1302963528, guid: 15385931be8cc6847b965811ee9e6906, type: 3}
+  shipPrefab: {fileID: 7220525806206694274, guid: 40ab865d0a1a495418a7bfd985d2cdec, type: 3}
+  effect: {fileID: 0}

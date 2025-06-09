@@ -1,17 +1,18 @@
+// File: SpawnVisualManager.cs
+
 using UnityEngine;
 
 /// <summary>
-/// Controla los barcos en espera visibles en el spawn point.
+/// Muestra en UI los barcos en buffer (vista previa) por carril.
 /// </summary>
 public class SpawnVisualManager : MonoBehaviour
 {
     public static SpawnVisualManager Instance;
 
-    [Header("Referencias de spawn")]
-    public Transform[] playerSpawnPoints;
-    public Transform[] enemySpawnPoints;
+    [Header("Puntos de Spawn UI")]
+    public Transform[] playerSpawnPoints;  // Posiciones en pantalla para preview del jugador
+    public Transform[] enemySpawnPoints;   // Posiciones en pantalla para preview de la IA
 
-    // Barcos visibles en espera por carril
     private Ship[] playerVisualShips;
     private Ship[] enemyVisualShips;
 
@@ -27,37 +28,31 @@ public class SpawnVisualManager : MonoBehaviour
 
     private void Start()
     {
-        // Asegurarnos de que LaneManager ya está inicializado
         int laneCount = LaneManager.Instance.laneCount;
         playerVisualShips = new Ship[laneCount];
         enemyVisualShips = new Ship[laneCount];
     }
 
     /// <summary>
-    /// Crea o actualiza el barco en espera visual para el buffer dado.
+    /// Crea o actualiza la vista previa de barco en buffer.
     /// </summary>
     public void ShowOrUpdateShipBuffer(bool isPlayer, int laneIndex, SpawnBuffer buffer)
     {
-        if (buffer == null
-            || laneIndex < 0
-            || laneIndex >= LaneManager.Instance.laneCount
-            || buffer.IsEmpty)
-        {
-            return;
-        }
+        if (buffer == null || buffer.IsEmpty) return;
+        if (laneIndex < 0 || laneIndex >= playerVisualShips.Length) return;
 
         Ship[] visualArray = isPlayer ? playerVisualShips : enemyVisualShips;
         Transform[] spawnPts = isPlayer ? playerSpawnPoints : enemySpawnPoints;
 
-        // Si no existe aún, instanciar un barco inmóvil
+        // Si no existe preview, instanciar
         if (visualArray[laneIndex] == null)
         {
-            GameObject shipGO = Instantiate(
+            GameObject go = Instantiate(
                 buffer.shipPrefab,
                 spawnPts[laneIndex].position,
                 Quaternion.identity
             );
-            Ship ship = shipGO.GetComponent<Ship>();
+            Ship ship = go.GetComponent<Ship>();
             ship.InitializePreview(
                 playerTeam: isPlayer,
                 attack: buffer.totalAttack,
@@ -68,7 +63,7 @@ public class SpawnVisualManager : MonoBehaviour
         }
         else
         {
-            // Si ya existe, solo actualizamos stats
+            // Si ya existe, actualizar stats
             visualArray[laneIndex].SetStats(
                 buffer.totalAttack,
                 buffer.totalHealth,
@@ -78,7 +73,7 @@ public class SpawnVisualManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Destruye el barco en espera visual de ese carril (por ejemplo al lanzarlo).
+    /// Elimina la vista previa al lanzar el barco.
     /// </summary>
     public void RemoveVisualShip(bool isPlayer, int laneIndex)
     {
@@ -93,7 +88,7 @@ public class SpawnVisualManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Devuelve el Ship visual en espera (o null si no hay).
+    /// Retorna la Ship de preview si existe.
     /// </summary>
     public Ship GetVisualShip(bool isPlayer, int laneIndex)
     {

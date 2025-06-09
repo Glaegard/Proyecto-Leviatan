@@ -6,6 +6,8 @@ TagManager:
   tags:
   - DropZone
   - AtackCollider
+  - FlyingShip
+  - NewRaycastSystem
   layers:
   - Default
   - TransparentFX
@@ -40,6 +42,9 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: UIHealth
+    uniqueID: 4013162957
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0

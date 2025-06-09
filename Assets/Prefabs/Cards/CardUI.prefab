@@ -550,6 +550,7 @@ MonoBehaviour:
   energyCostText: {fileID: 8655384922474498567}
   attackText: {fileID: 8654742650890284116}
   defenseText: {fileID: 534811752607345660}
+  cardImage: {fileID: 0}
   cardData: {fileID: 11400000, guid: c21cb08ee3e03ea42be22b1fd76730ff, type: 2}
   handSlotIndex: 0
 --- !u!225 &1241957061858645182

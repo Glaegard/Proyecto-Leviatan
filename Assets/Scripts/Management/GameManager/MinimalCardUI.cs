@@ -1,15 +1,19 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using System.Collections;
-using TMPro;
+﻿// File: MinimalCardUI.cs
 
+using UnityEngine;
+using UnityEngine.EventSystems;
+using TMPro;
+using UnityEngine.UI;
+
+/// <summary>
+/// UI minimalista de carta: drag & drop + doble-click para mostrar/ocultar detalle.
+/// </summary>
 [RequireComponent(typeof(CanvasGroup))]
 public class MinimalCardUI : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler,
-    IPointerDownHandler, IPointerUpHandler
+    IPointerDownHandler
 {
-    [Header("UI Minimalista")]
+    [Header("Referencias UI")]
     public TextMeshProUGUI energyCostText;
     public TextMeshProUGUI attackText;
     public TextMeshProUGUI defenseText;
@@ -18,10 +22,12 @@ public class MinimalCardUI : MonoBehaviour,
     [HideInInspector] public CardData cardData;
     [HideInInspector] public int slotIndex;
 
-    private Vector3 originalPosition;
     private CanvasGroup canvasGroup;
-    private Coroutine holdCoroutine;
-    private bool pointerDown;
+    private Vector3 originalPosition;
+
+    // Para detectar doble-click sobre esta carta
+    private float lastClickTime;
+    private const float doubleClickThreshold = 0.3f; // segundos
 
     private void Awake()
     {
@@ -29,50 +35,35 @@ public class MinimalCardUI : MonoBehaviour,
     }
 
     /// <summary>
-    /// Asigna datos y slot, actualiza textos e imagen.
+    /// Inicializa la carta en el slot indicado.
     /// </summary>
     public void Initialize(CardData data, int slot)
     {
         cardData = data;
         slotIndex = slot;
+        originalPosition = transform.position;
 
         energyCostText.text = data.energyCost.ToString();
         attackText.text = data.attack.ToString();
         defenseText.text = data.defense.ToString();
-        if (cardImage != null && data.previewSprite != null)
+        if (data.previewSprite != null)
             cardImage.sprite = data.previewSprite;
-
-        originalPosition = transform.position;
     }
 
-    // ─ Hold para detalle ──────────────────
-    public void OnPointerDown(PointerEventData _)
+    /// <summary>
+    /// Devuelve la carta a su posición original si la jugada falla.
+    /// </summary>
+    public void ReturnToSlot()
     {
-        pointerDown = true;
-        holdCoroutine = StartCoroutine(ShowDetailAfterDelay());
-    }
-    public void OnPointerUp(PointerEventData _)
-    {
-        pointerDown = false;
-        if (holdCoroutine != null) StopCoroutine(holdCoroutine);
+        transform.position = originalPosition;
+        canvasGroup.blocksRaycasts = true;
     }
 
-    private IEnumerator ShowDetailAfterDelay()
-    {
-        yield return new WaitForSeconds(0.5f);
-        if (pointerDown && GameManager.Instance?.uiManager != null)
-            GameManager.Instance.uiManager.ShowCardDetail(cardData);
-    }
+    // ─────────────── Drag & Drop ────────────────
 
-    // ─ Drag & Drop ───────────────────────
     public void OnBeginDrag(PointerEventData _)
     {
-        pointerDown = false;
-        if (GameManager.Instance?.uiManager?.cardDetailPanel.activeSelf == true)
-            GameManager.Instance.uiManager.HideCardDetail();
-
-        originalPosition = transform.position;
-        canvasGroup.blocksRaycasts = false;
+        canvasGroup.blocksRaycasts = false; // permitir drop zone
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -80,26 +71,30 @@ public class MinimalCardUI : MonoBehaviour,
         transform.position += (Vector3)eventData.delta;
     }
 
-    public void OnEndDrag(PointerEventData eventData)
+    public void OnEndDrag(PointerEventData _)
     {
         canvasGroup.blocksRaycasts = true;
+        // Si no se jugó, volvemos al slot
+        transform.position = originalPosition;
+    }
 
-        // Si suelta en zona de spawn:
-        if (eventData.pointerEnter != null &&
-            eventData.pointerEnter.CompareTag("DropZone") &&
-            eventData.pointerEnter.TryGetComponent(out SpawnZone spawn))
+    // ───────────── Detección de Doble-Click ─────────────
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        float timeSinceLast = Time.unscaledTime - lastClickTime;
+        if (timeSinceLast <= doubleClickThreshold)
         {
-            bool played = GameManager.Instance.PlayCard(cardData, spawn.laneIndex, true);
-            if (played)
+            // Doble-click: alternar panel de detalle
+            if (GameManager.Instance != null && GameManager.Instance.uiManager != null)
             {
-                // Rojo automática y destrucción
-                GameManager.Instance.cardManager.RemoveCardFromHand(slotIndex);
-                Destroy(gameObject);
-                return;
+                var uiMgr = GameManager.Instance.uiManager;
+                if (uiMgr.cardDetailPanel.activeSelf)
+                    uiMgr.HideCardDetail();
+                else
+                    uiMgr.ShowCardDetail(cardData);
             }
         }
-
-        // Sino, vuelve a posición
-        transform.position = originalPosition;
+        lastClickTime = Time.unscaledTime;
     }
 }

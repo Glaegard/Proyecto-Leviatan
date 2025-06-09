@@ -1,43 +1,28 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Gestiona los carriles y el spawn de barcos.
-/// Ahora permite múltiples barcos por carril.
-/// </summary>
 public class LaneManager : MonoBehaviour
 {
-    [Header("Configuración de Carriles")]
+    public static LaneManager Instance { get; private set; }
+
+    [Header("Configuración")]
     public int laneCount = 3;
     public Transform[] playerLaneSpawns;
     public Transform[] enemyLaneSpawns;
-
-    [Header("Movimiento")]
     public float moveInterval = 3f;
     public float moveDistance = 5f;
 
-    public List<Ship>[] playerShips;
-    public List<Ship>[] enemyShips;
-
-    public static LaneManager Instance { get; private set; }
+    [HideInInspector] public List<Ship>[] playerShips;
+    [HideInInspector] public List<Ship>[] enemyShips;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
 
     private void Start()
     {
-        if (playerLaneSpawns.Length != laneCount || enemyLaneSpawns.Length != laneCount)
-        {
-            Debug.LogWarning("LaneManager: la configuración de spawn points no coincide con laneCount.");
-        }
-
         playerShips = new List<Ship>[laneCount];
         enemyShips = new List<Ship>[laneCount];
         for (int i = 0; i < laneCount; i++)
@@ -47,69 +32,61 @@ public class LaneManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Spawnea un barco con los valores dados, ya sea del jugador o la IA.
-    /// </summary>
     public void SpawnShip(GameObject shipPrefab, bool isPlayer, int laneIndex, int attack, int health)
     {
-        if (laneIndex < 0 || laneIndex >= laneCount)
-        {
-            Debug.LogError($"LaneManager: carril inválido ({laneIndex}).");
-            return;
-        }
+        var spawn = isPlayer ? playerLaneSpawns[laneIndex] : enemyLaneSpawns[laneIndex];
+        var target = isPlayer ? enemyLaneSpawns[laneIndex] : playerLaneSpawns[laneIndex];
+        var rot = Quaternion.LookRotation(target.position - spawn.position);
 
-        Transform spawn = isPlayer ? playerLaneSpawns[laneIndex] : enemyLaneSpawns[laneIndex];
-        Transform target = isPlayer ? enemyLaneSpawns[laneIndex] : playerLaneSpawns[laneIndex];
-
-        Quaternion rot = Quaternion.LookRotation(target.position - spawn.position);
-        GameObject go = Instantiate(shipPrefab, spawn.position, rot);
-
-        Ship ship = go.GetComponent<Ship>();
+        var go = Instantiate(shipPrefab, spawn.position, rot);
+        var ship = go.GetComponent<Ship>();
         if (ship != null)
         {
-            ship.Initialize(
-                playerTeam: isPlayer,
-                baseAttack: attack,
-                baseHealth: health,
-                targetPos: target.position,
-                moveInterval: moveInterval,
-                moveDistance: moveDistance,
-                laneIndex: laneIndex
-            );
-
-            if (isPlayer) playerShips[laneIndex].Add(ship);
-            else enemyShips[laneIndex].Add(ship);
-        }
-        else
-        {
-            Debug.LogError("LaneManager: el prefab no tiene componente Ship.");
-            Destroy(go);
+            ship.Initialize(isPlayer, attack, health,
+                            target.position, moveInterval, moveDistance, laneIndex);
+            RegisterShip(ship, laneIndex, isPlayer);
         }
     }
 
-    /// <summary>
-    /// Lanza el barco acumulado en el buffer del carril correspondiente.
-    /// </summary>
+    public void RegisterShip(Ship ship, int laneIndex, bool isPlayer)
+    {
+        if (isPlayer) playerShips[laneIndex].Add(ship);
+        else enemyShips[laneIndex].Add(ship);
+    }
+
+    public void DestroyShip(Ship ship)
+    {
+        int lane = ship.laneIndex;
+        if (ship.isPlayer) playerShips[lane].Remove(ship);
+        else enemyShips[lane].Remove(ship);
+        Destroy(ship.gameObject);
+    }
+
+    public bool IsLaneEmpty(int laneIndex, bool isPlayer)
+    {
+        return isPlayer
+            ? playerShips[laneIndex].Count == 0
+            : enemyShips[laneIndex].Count == 0;
+    }
+
+    public void TransferShipToLane(Ship ship, int newLane)
+    {
+        int old = ship.laneIndex;
+        var listOld = ship.isPlayer ? playerShips[old] : enemyShips[old];
+        listOld.Remove(ship);
+
+        ship.laneIndex = newLane;
+        var listNew = ship.isPlayer ? playerShips[newLane] : enemyShips[newLane];
+        listNew.Add(ship);
+
+        ship.transform.position = (ship.isPlayer
+            ? playerLaneSpawns[newLane]
+            : enemyLaneSpawns[newLane]
+        ).position;
+    }
+
     public void LaunchBufferedShip(int laneIndex, bool isPlayer)
     {
         GameManager.Instance.LaunchShipFromLane(laneIndex, isPlayer);
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (playerLaneSpawns == null || enemyLaneSpawns == null) return;
-        int c = Mathf.Min(playerLaneSpawns.Length, enemyLaneSpawns.Length, laneCount);
-        for (int i = 0; i < c; i++)
-        {
-            Transform p = playerLaneSpawns[i];
-            Transform e = enemyLaneSpawns[i];
-            if (p != null && e != null)
-            {
-                Gizmos.color = Color.green;
-                Gizmos.DrawLine(p.position, p.position + (e.position - p.position).normalized * moveDistance);
-                Gizmos.color = Color.red;
-                Gizmos.DrawLine(e.position, e.position + (p.position - e.position).normalized * moveDistance);
-            }
-        }
     }
 }

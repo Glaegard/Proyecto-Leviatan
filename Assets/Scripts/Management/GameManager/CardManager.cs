@@ -3,47 +3,34 @@ using UnityEngine;
 
 public class CardManager : MonoBehaviour
 {
-    [Header("Mazo del Jugador")]
+    [Header("Mazo (Scriptable)")]
     public CardDeck deckAsset;
 
-    [Header("Slots (4)")]
-    [Range(1, 8)]
+    [Header("Slots Mano")]
     public int handSize = 4;
-    public Transform[] slotPanels;          // 4 paneles en Canvas
+    public Transform[] slotPanels;
+    public GameObject minimalCardPrefab;
 
-    [Header("Prefab Minimalista")]
-    public GameObject minimalCardPrefab;    // Prefab con script MinimalCardUI
-
-    private Queue<CardData> deckQueue;      // Mazo de robo
-    private CardData[] currentCards;        // Carta actual en cada slot
+    private Queue<CardData> deckQueue;
+    private CardData[] currentCards;
 
     private void Start()
     {
-        // Validaciones
-        if (deckAsset == null || minimalCardPrefab == null ||
-            slotPanels == null || slotPanels.Length != handSize)
+        if (deckAsset == null)
         {
-            Debug.LogError("CardManager: config slots o prefabs incorrectos.");
+            Debug.LogError("CardManager: deckAsset no asignado.");
             return;
         }
-
-        // Construir cola de cartas
         deckQueue = new Queue<CardData>(deckAsset.cards);
         currentCards = new CardData[handSize];
-
-        // Reparto inicial
         for (int i = 0; i < handSize; i++)
             DrawToSlot(i);
     }
 
-    /// <summary>
-    /// Roba del mazo y crea MinimalCardUI en slot dado
-    /// </summary>
     private void DrawToSlot(int slot)
     {
-        // Borrar lo que hubiera
-        foreach (Transform child in slotPanels[slot])
-            Destroy(child.gameObject);
+        foreach (Transform c in slotPanels[slot])
+            Destroy(c.gameObject);
 
         if (deckQueue.Count == 0)
         {
@@ -51,22 +38,17 @@ public class CardManager : MonoBehaviour
             return;
         }
 
-        // Robar y mostrar
-        CardData data = deckQueue.Dequeue();
+        var data = deckQueue.Dequeue();
         currentCards[slot] = data;
-        GameObject go = Instantiate(minimalCardPrefab, slotPanels[slot], false);
+        var go = Instantiate(minimalCardPrefab, slotPanels[slot], false);
         var mc = go.GetComponent<MinimalCardUI>();
         mc.Initialize(data, slot);
+        AudioManager.Instance.Play("draw"); // añadimos sonido de robar carta
     }
 
-    /// <summary>
-    /// Llamado tras jugar carta; roba nueva en mismo slot.
-    /// </summary>
     public void RemoveCardFromHand(int slot)
     {
-        // Marcar vacío
         currentCards[slot] = null;
-        // Robar siguiente
         DrawToSlot(slot);
     }
 }

@@ -1,16 +1,17 @@
-using System.Collections;
+Ôªøusing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class AIController : MonoBehaviour
 {
-    [Header("ConfiguraciÛn del Mazo (IA)")]
+    [Header("Configuraci√≥n del Mazo (IA)")]
     public CardDeck deckAsset;
 
     private List<CardData> deck = new List<CardData>();
     private List<CardData> discardPile = new List<CardData>();
 
-    public int boardingCount = 0;
+    [HideInInspector]
+    public int boardingCount = 0;  // Ahora existe para Trackear abordajes
 
     private Coroutine aiPlayCoroutine;
 
@@ -31,23 +32,19 @@ public class AIController : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
 
-        while (GameManager.Instance != null && GameManager.Instance.currentGameState == GameState.Playing)
+        while (GameManager.Instance.currentGameState == GameState.Playing)
         {
             yield return new WaitForSeconds(Random.Range(2f, 4f));
 
-            // Lanzar barco desde buffer si est· listo
+            // 1) Intentar lanzamiento autom√°tico
             int laneToLaunch = GetRandomBufferedLane();
             if (laneToLaunch != -1 && Random.value < 0.6f)
             {
                 bool launched = GameManager.Instance.LaunchShipFromLane(laneToLaunch, false);
-                if (launched)
-                {
-                    Debug.Log($"IA lanza barco en carril {laneToLaunch}");
-                    continue; // omitir jugar carta este ciclo
-                }
+                if (launched) continue;
             }
 
-            // Si el mazo est· vacÌo, reciclar descarte
+            // 2) Reciclar mazo si est√° vac√≠o
             if (deck.Count == 0 && discardPile.Count > 0)
             {
                 deck.AddRange(discardPile);
@@ -55,120 +52,105 @@ public class AIController : MonoBehaviour
                 ShuffleDeck();
             }
 
+            // 3) Jugar carta
             if (GameManager.Instance.aiEnergy > 0 && deck.Count > 0)
             {
                 CardData chosenCard = null;
                 int targetLane = -1;
                 Ship targetShip = null;
 
-                // Jugar Marinero en carril sin buffer
+                // 3.1) Marinero a buffer libre
                 int freeLane = GetFreeBufferLane();
                 if (freeLane != -1)
                 {
-                    foreach (CardData card in deck)
-                    {
-                        if (card.cardType == CardType.Marinero && card.energyCost <= GameManager.Instance.aiEnergy)
+                    foreach (var c in deck)
+                        if (c.cardType == CardType.Marinero && c.energyCost <= GameManager.Instance.aiEnergy)
                         {
-                            chosenCard = card;
+                            chosenCard = c;
                             targetLane = freeLane;
                             break;
                         }
-                    }
                 }
 
-                // AÒadir Marinero a buffer existente si no encontrÛ libre
+                // 3.2) Marinero a buffer existente
                 if (chosenCard == null)
                 {
-                    int laneWithBuffer = GetLaneWithActiveBuffer();
-                    if (laneWithBuffer != -1)
+                    int buffered = GetLaneWithActiveBuffer();
+                    if (buffered != -1)
                     {
-                        foreach (CardData card in deck)
-                        {
-                            if (card.cardType == CardType.Marinero && card.energyCost <= GameManager.Instance.aiEnergy)
+                        foreach (var c in deck)
+                            if (c.cardType == CardType.Marinero && c.energyCost <= GameManager.Instance.aiEnergy)
                             {
-                                chosenCard = card;
-                                targetLane = laneWithBuffer;
+                                chosenCard = c;
+                                targetLane = buffered;
                                 break;
                             }
-                        }
                     }
                 }
 
-                // Jugar carta sobre barco existente (Maquinaria)
+                // 3.3) Artefacto sobre barco
                 if (chosenCard == null)
                 {
-                    List<Ship> targets = GetAIShipsInPlay();
-                    if (targets.Count > 0)
+                    var ships = GetAIShipsInPlay();
+                    if (ships.Count > 0)
                     {
-                        foreach (CardData card in deck)
-                        {
-                            if (card.cardType == CardType.Maquinaria && card.energyCost <= GameManager.Instance.aiEnergy)
+                        foreach (var c in deck)
+                            if (c.cardType == CardType.Artefacto && c.energyCost <= GameManager.Instance.aiEnergy)
                             {
-                                chosenCard = card;
-                                targetShip = targets[Random.Range(0, targets.Count)];
+                                chosenCard = c;
+                                targetShip = ships[Random.Range(0, ships.Count)];
                                 break;
                             }
-                        }
                     }
                 }
 
-                // Jugar Maniobra
+                // 3.4) Maniobra
                 if (chosenCard == null)
                 {
-                    foreach (CardData card in deck)
-                    {
-                        if (card.cardType == CardType.Maniobra && card.energyCost <= GameManager.Instance.aiEnergy)
+                    foreach (var c in deck)
+                        if (c.cardType == CardType.Maniobra && c.energyCost <= GameManager.Instance.aiEnergy)
                         {
-                            chosenCard = card;
+                            chosenCard = c;
                             break;
                         }
-                    }
                 }
 
+                // 3.5) Ejecutar jugada
                 if (chosenCard != null)
                 {
                     deck.Remove(chosenCard);
                     discardPile.Add(chosenCard);
 
-                    if (targetLane != -1)
-                    {
-                        GameManager.Instance.PlayCard(chosenCard, targetLane, false);
-                        Debug.Log("IA juega '" + chosenCard.cardName + "' en carril " + targetLane);
-                    }
-                    else if (targetShip != null)
-                    {
-                        GameManager.Instance.PlayCardOnShip(chosenCard, targetShip, false);
-                        Debug.Log("IA usa '" + chosenCard.cardName + "' sobre barco en carril " + targetShip.laneIndex);
-                    }
-                    else
-                    {
-                        GameManager.Instance.PlayCard(chosenCard, 0, false);
-                        Debug.Log("IA juega maniobra '" + chosenCard.cardName + "'");
-                    }
+                    GameManager.Instance.TryPlayCard(
+                        chosenCard,
+                        targetLane,
+                        targetShip,
+                        false
+                    );
                 }
             }
         }
     }
 
-    private List<Ship> GetAIShipsInPlay()
+    private void ShuffleDeck()
     {
-        List<Ship> ships = new List<Ship>();
-        foreach (var lane in LaneManager.Instance.enemyShips)
+        for (int i = 0; i < deck.Count; i++)
         {
-            ships.AddRange(lane);
+            var temp = deck[i];
+            int r = Random.Range(i, deck.Count);
+            deck[i] = deck[r];
+            deck[r] = temp;
         }
-        return ships;
     }
 
     private int GetFreeBufferLane()
     {
         for (int i = 0; i < LaneManager.Instance.laneCount; i++)
         {
-            if (GameManager.Instance.enemySpawnBuffers[i].IsEmpty &&
+            var buf = GameManager.Instance.enemySpawnBuffers[i];
+            if (buf.IsEmpty &&
                 Time.time >= GameManager.Instance.lastPlayTimePerLane[i] + GameManager.Instance.marinerCooldown)
-            {
                 return i;
-            }
         }
         return -1;
     }
@@ -176,37 +158,30 @@ public class AIController : MonoBehaviour
     private int GetLaneWithActiveBuffer()
     {
         for (int i = 0; i < LaneManager.Instance.laneCount; i++)
-        {
             if (!GameManager.Instance.enemySpawnBuffers[i].IsEmpty)
                 return i;
-        }
         return -1;
     }
 
     private int GetRandomBufferedLane()
     {
-        List<int> lanes = new List<int>();
+        var lanes = new List<int>();
         for (int i = 0; i < LaneManager.Instance.laneCount; i++)
         {
-            if (!GameManager.Instance.enemySpawnBuffers[i].IsEmpty &&
+            var buf = GameManager.Instance.enemySpawnBuffers[i];
+            if (!buf.IsEmpty &&
                 Time.time >= GameManager.Instance.lastPlayTimePerLane[i] + GameManager.Instance.marinerCooldown)
-            {
                 lanes.Add(i);
-            }
         }
-
         if (lanes.Count == 0) return -1;
         return lanes[Random.Range(0, lanes.Count)];
     }
 
-    private void ShuffleDeck()
+    private List<Ship> GetAIShipsInPlay()
     {
-        for (int i = 0; i < deck.Count; i++)
-        {
-            CardData temp = deck[i];
-            int r = Random.Range(i, deck.Count);
-            deck[i] = deck[r];
-            deck[r] = temp;
-        }
+        var list = new List<Ship>();
+        foreach (var lane in LaneManager.Instance.enemyShips)
+            list.AddRange(lane);
+        return list;
     }
 }

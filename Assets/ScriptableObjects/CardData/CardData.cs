@@ -1,33 +1,56 @@
 using UnityEngine;
 
-/// <summary>
-/// Enumeración de tipos de cartas disponibles en el juego.
-/// </summary>
 public enum CardType
 {
-    Marinero,   // Tripulante que puede crear o unirse a un barco
-    Maquinaria, // Equipamiento para barcos
-    Maniobra    // Carta de acción especial (hechizo/movimiento)
+    Marinero,
+    Capitan,
+    Artefacto,
+    Maniobra,
+    Leviatan
 }
 
 [CreateAssetMenu(fileName = "NewCard", menuName = "Cards/Card")]
 public class CardData : ScriptableObject
 {
-    [Header("Información básica")]
-    public string cardName;
+    [Header("Nombre y Descripciones")]
+    public string cardName_ES;
+    public string cardName_EN;
+    public string abilityText_ES;
+    public string abilityText_EN;
+    public string loreText_ES;
+    public string loreText_EN;
+
+    [Header("Tipo y Coste")]
     public CardType cardType;
     public int energyCost;
-    public string abilityText;   // Descripción o habilidad de la carta (efecto en texto)
-    public string loreText;      // Texto de ambientación o historia de la carta
 
-    [Header("Estadísticas (para cartas de tipo Marinero)")]
+    [Header("Estadísticas (Marinero/Capitán)")]
     public int attack;
-    public int defense;          // Puntos de salud/defensa del barco o unidad asociada
+    public int defense;
 
     [Header("Arte de la carta")]
-    public Sprite previewSprite; // Imagen de vista previa (miniatura) para mostrar en la mano
-    public Sprite fullSprite;    // Imagen de arte completo para mostrar en la vista de detalle
+    public Sprite previewSprite;
+    public Sprite fullSprite;
 
-    [Header("Prefab asociado")]
-    public GameObject shipPrefab; // Prefab del barco generado por cartas tipo Marinero (puede ser null para otros tipos)
+    [Header("Prefab (Marinero/Capitán/Leviatán)")]
+    public GameObject shipPrefab;
+
+    [Header("Efecto Opcional")]
+    public CardEffect effect;
+
+    public string GetName()
+    {
+        return LocalizationManager.Instance.currentLanguage == SystemLanguage.Spanish
+            ? cardName_ES : cardName_EN;
+    }
+    public string GetAbilityText()
+    {
+        return LocalizationManager.Instance.currentLanguage == SystemLanguage.Spanish
+            ? abilityText_ES : abilityText_EN;
+    }
+    public string GetLoreText()
+    {
+        return LocalizationManager.Instance.currentLanguage == SystemLanguage.Spanish
+            ? loreText_ES : loreText_EN;
+    }
 }

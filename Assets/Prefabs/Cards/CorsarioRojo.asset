@@ -12,13 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbb4e8600c3569b4d9426dfaf37056da, type: 3}
   m_Name: CorsarioRojo
   m_EditorClassIdentifier: 
-  cardName: Corsario Rojo
+  cardName_ES: P_0A
+  cardName_EN: 
+  abilityText_ES: 
+  abilityText_EN: 
+  loreText_ES: 
+  loreText_EN: 
   cardType: 0
   energyCost: 2
-  abilityText: El corsario rojo es un PUTO lamebotas de pedro sanchez
-  loreText: "Cuando el corsario rojo caga, caga marr\xF3n"
   attack: 1
   defense: 2
   previewSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
   fullSprite: {fileID: 21300000, guid: 8f49b870f08269349a51a88c04985d06, type: 3}
   shipPrefab: {fileID: 6510914853174331649, guid: 93c9df02b0ec51e458bd6e728297965a, type: 3}
+  effect: {fileID: 0}
